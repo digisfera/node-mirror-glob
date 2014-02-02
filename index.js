@@ -17,7 +17,7 @@
   Args = require('args-js');
 
   module.exports = function() {
-    var args, callback, extraFilePaths, generateFilePath, globOptions, handler, options, outputDir, outputFilePath, patterns, removeCallback, updateCallback;
+    var args, callback, extraFilePaths, generateFilePath, globOptions, handler, options, outputDir, outputFilePath, patterns, removeCallback, sourceMapDir, updateCallback;
     args = Args([
       {
         patterns: Args.ANY | Args.Required
@@ -51,11 +51,12 @@
       };
     }
     if (options.sourceMapDir) {
+      sourceMapDir = options.sourceMapDir === true ? outputDir : options.sourceMapDir;
       if (options.extraFiles == null) {
         options.extraFiles = {};
       }
       options.extraFiles.sourceMap = {
-        dir: options.sourceMapDir,
+        dir: sourceMapDir,
         extension: 'map'
       };
     }

@@ -26,8 +26,9 @@ module.exports = () ->
   if _.isString(globOptions) then globOptions = { cwd: globOptions }
   
   if options.sourceMapDir
+    sourceMapDir = if options.sourceMapDir == true then outputDir else options.sourceMapDir
     options.extraFiles ?= {}
-    options.extraFiles.sourceMap = { dir: options.sourceMapDir, extension: 'map' }
+    options.extraFiles.sourceMap = { dir: sourceMapDir, extension: 'map' }
 
 
   generateFilePath = (p, dir, extension) ->
