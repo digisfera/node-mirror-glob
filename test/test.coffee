@@ -6,7 +6,7 @@ fs = require('fs')
 sinon = require('sinon')
 filerw = require('file-rw')
 
-mirrorGlob = require('../index')
+mirrorGlob = require('../index.coffee')
 
 describe 'mirrorGlob', ->
 
