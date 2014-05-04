@@ -13,8 +13,8 @@ module.exports = () ->
     { patterns:  Args.ANY | Args.Required }
     { globOptions: Args.ANY | Args.Required }
     { outputDir: Args.STRING | Args.Required }
-    { handler: Args.FUNCTION | Args.Required }
     { options: Args.OBJECT | Args.Optional, _default: {} }
+    { handler: Args.FUNCTION | Args.Required }
     { callback: Args.FUNCTION | Args.Optional, _default: (->) }
     { updateCallback: Args.FUNCTION | Args.Optional, _default: (->) }
     { removeCallback: Args.FUNCTION | Args.Optional, _default: (->) }

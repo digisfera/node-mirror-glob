@@ -26,7 +26,7 @@ describe 'mirrorGlob', ->
         else cb(null, outputFile)
 
   it 'should read files in glob and write output to dir', (done) ->
-    mirrorGlob 'g*.txt', { cwd: djoin('files') }, djoin('tmp/glob1'), f, {}, (err, success) ->
+    mirrorGlob 'g*.txt', { cwd: djoin('files') }, djoin('tmp/glob1'), {}, f, (err, success) ->
       expect(err).to.be.not.ok
       expect(success).to.eql([ djoin('tmp/glob1/g1.txt'), djoin('tmp/glob1/g2.txt'), djoin('tmp/glob1/g3.txt') ])
       expect(rfile(djoin('tmp/glob1/g1.txt'))).to.equal('HELLO')
@@ -35,7 +35,7 @@ describe 'mirrorGlob', ->
       done()
 
   it 'should add extension when defined', (done) ->
-    mirrorGlob 'g*.txt', { cwd: djoin('files') }, djoin('tmp/glob2'), f, { extension: 'ext' }, (err, success) ->
+    mirrorGlob 'g*.txt', { cwd: djoin('files') }, djoin('tmp/glob2'), { extension: 'ext' }, f, (err, success) ->
       expect(err).to.be.not.ok
       expect(success).to.eql([ djoin('tmp/glob2/g1.txt.ext'), djoin('tmp/glob2/g2.txt.ext'), djoin('tmp/glob2/g3.txt.ext') ])
       expect(rfile(djoin('tmp/glob2/g1.txt.ext'))).to.equal('HELLO')
@@ -44,7 +44,7 @@ describe 'mirrorGlob', ->
       done()
 
   it 'should work if an absolute path is given', (done) ->
-    mirrorGlob "#{__dirname}/files/g*.txt", { }, djoin('tmp/glob3'), f, { }, (err, success) ->
+    mirrorGlob "#{__dirname}/files/g*.txt", { }, djoin('tmp/glob3'), { }, f, (err, success) ->
       expect(err).to.be.not.ok
       expect(success).to.eql([ djoin('tmp/glob3/g1.txt'), djoin('tmp/glob3/g2.txt'), djoin('tmp/glob3/g3.txt') ])
       expect(rfile(djoin('tmp/glob3/g1.txt'))).to.equal('HELLO')
@@ -53,7 +53,7 @@ describe 'mirrorGlob', ->
       done()
 
   it 'should replicate directory structure', (done) ->
-    mirrorGlob 'g4/**/*.txt', { cwd: djoin('files') }, djoin('tmp/glob4'), f, {}, (err, success) ->
+    mirrorGlob 'g4/**/*.txt', { cwd: djoin('files') }, djoin('tmp/glob4'), {}, f, (err, success) ->
       expect(err).to.be.not.ok
       expect(success).to.eql([ djoin('tmp/glob4/g4/bar.txt'), djoin('tmp/glob4/g4/baz.txt'), djoin('tmp/glob4/g4/foo/test.txt') ])
       expect(rfile(djoin('tmp/glob4/g4/bar.txt'))).to.equal('BAR')
@@ -62,7 +62,7 @@ describe 'mirrorGlob', ->
       done()
 
   it 'should take multiple globs', (done) ->
-    mirrorGlob [ '*1.txt', 'g2.*' ], { cwd: djoin('files') }, djoin('tmp/glob5'), f, {}, (err, success) ->
+    mirrorGlob [ '*1.txt', 'g2.*' ], { cwd: djoin('files') }, djoin('tmp/glob5'), {}, f, (err, success) ->
       expect(err).to.be.not.ok
       expect(success).to.eql([ djoin('tmp/glob5/f1.txt'), djoin('tmp/glob5/g1.txt'), djoin('tmp/glob5/g2.txt') ])
       expect(rfile(djoin('tmp/glob5/f1.txt'))).to.equal('FOO')
@@ -72,7 +72,7 @@ describe 'mirrorGlob', ->
 
 
   it 'should not repeat files, even if they are matched in multiple globs', (done) ->
-    mirrorGlob [ '*1.txt', 'g1.*' ], { cwd: djoin('files') }, djoin('tmp/glob6'), f, {}, (err, success) ->
+    mirrorGlob [ '*1.txt', 'g1.*' ], { cwd: djoin('files') }, djoin('tmp/glob6'), {}, f, (err, success) ->
       expect(err).to.be.not.ok
       expect(success).to.eql([ djoin('tmp/glob6/f1.txt'), djoin('tmp/glob6/g1.txt') ])
       expect(rfile(djoin('tmp/glob6/f1.txt'))).to.equal('FOO')
@@ -89,7 +89,7 @@ describe 'mirrorGlob', ->
 
 
   it 'assume string is cwd if it is the only globOption', (done) ->
-    mirrorGlob 'g*.txt', djoin('files'), djoin('tmp/glob7'), f, {}, (err, success) ->
+    mirrorGlob 'g*.txt', djoin('files'), djoin('tmp/glob7'), {}, f, (err, success) ->
       expect(err).to.be.not.ok
       expect(success).to.eql([ djoin('tmp/glob7/g1.txt'), djoin('tmp/glob7/g2.txt'), djoin('tmp/glob7/g3.txt') ])
       expect(rfile(djoin('tmp/glob7/g1.txt'))).to.equal('HELLO')
@@ -117,7 +117,7 @@ describe 'mirrorGlob', ->
         dir: 'maps'
         extension: 'map'
 
-    mirrorGlob('g*.txt', djoin('files'), 'build', handler, { extension: 'out', extraFiles})
+    mirrorGlob('g*.txt', djoin('files'), 'build', { extension: 'out', extraFiles}, handler)
     delay 50, ->
       expect(handler.callCount).to.equal(3)
       expect(handler.args[0]).to.have.length(4)
@@ -134,7 +134,7 @@ describe 'mirrorGlob', ->
         dir: 'other'
         extension: 'oth'
 
-    mirrorGlob('g*.txt', djoin('files'), 'build', handler, { extension: 'out', extraFiles, sourceMapDir: 'maps'})
+    mirrorGlob('g*.txt', djoin('files'), 'build', { extension: 'out', extraFiles, sourceMapDir: 'maps'}, handler)
     delay 50, ->
       expect(handler.callCount).to.equal(3)
       expect(handler.args[0]).to.have.length(4)
