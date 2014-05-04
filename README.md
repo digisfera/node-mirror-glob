@@ -8,7 +8,7 @@ Process a group of files into another folder and watch them for changes
 
 ## Usage
 
-**mirrorGlob(patterns, base, outputDir, [options], handler, [callback], [updateCallback], [removeCallback])**
+**mirrorGlob(patterns, base, outputDir, [options], handler, [callbacks], [updateCallback], [removeCallback])**
 
 `processGlob` receives a handler which is called for each files which matches a pattern. It can then watch that pattern, calling the handler whenever a file is changed or a new file is added, and deleting the processed file if the original one is removed.
 
@@ -21,9 +21,14 @@ Process a group of files into another folder and watch them for changes
   * `extraFiles` - an object describing extra file paths to be passed in the `extraFiles` argument. `{ type: { dir, extension } }` (e.g `{ log: { dir: 'logs', extension: 'log' } }`)
   * `sourceMapDir` - a shorthand add a property to `extraFiles`: `{ sourceMap: { dir: sourceMapDir, extension: 'map' } }`
 * `handler` - the function to process the files, which will be called with arguments `(inputPath, outputPath, extraFiles, callback)`. The `extraFiles` argument contains the files defined in `options.extraFiles`
-* `callback` - function to be called after the initial processing is finished, with `(err, handlerResults)`
-* `updateCallback` - function to be called after processing is finished due to a file being changed or added. only called when `options.watch` is `true`
-* `removeCallback` - function to be called after a file is removed. only called when `options.watch` is `true`
+* `callbacks` - function or object containing functions to be called after a file is processed
+  * if object, should have the following properties:
+    * `initial`- function to be called after the initial processing is finished, with `(err, [ { processingResult, inputPath, outputPath, extraPaths }] )`
+    * `update` - function to be called after processing is finished due to a file being changed or added, with `(err, { processingResult, inputPath, outputPath, extraPaths })`. only called when `options.watch` is `true`
+    * `remove` - function to be called after a file is removed, with ``(err, { inputPath, outputPath, extraPaths })`. only called when `options.watch` is `true`
+
+  * if function, is called after the initial processing and on update, with `(err, [ { processingResult, inputPath, outputPath, extraPaths }] )`
+ 
 
 
 ## Example
@@ -42,14 +47,17 @@ Process a group of files into another folder and watch them for changes
       extension: 'js',
       extraFiles: { log: { dir: 'logging', extension: 'log' }, sourceMap: { dir: 'maps', extension: 'map' }}
     }
-    mirrorGlob('**/*.wutscript', 'src', 'build', options, someHandler, function(err, success) {
-      console.log("Initial processing complete");
-      // success is an array with all the results passed to someHandler()'s callback
-    }, function(err, success) {
-      console.log("File reprocessed");
-      // success is the result passed to someHandler()'s callback
-    }, function(err) {
-      console.log("File removed");
-      // err is not null if an error ocurred while unlinking the file
-    });
+    mirrorGlob('**/*.wutscript', 'src', 'build', options, someHandler, {
+      initial: function(err, success) {
+        console.log("Initial processing complete");
+        // success is an array with information about the file processing
+      },
+      update: function(err, success) {
+        console.log("File reprocessed");
+        // success has information about the file processing
+      },
+      remove: function(err, success) {
+        console.log("File removed");
+        // err is not null if an error ocurred while unlinking the file
+      }});
 

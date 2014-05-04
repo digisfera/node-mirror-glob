@@ -7,6 +7,12 @@ watchGlob = require('watch-glob')
 Args = require('args-js')
 
 
+defaultUpdateCallback = (initialCallback) ->
+  (err, processingResult) ->
+    if err then initialCallback(err)
+    else initialCallback(null, [processingResult])
+
+
 module.exports = () ->
 
   args = Args([
@@ -15,12 +21,16 @@ module.exports = () ->
     { outputDir: Args.STRING | Args.Required }
     { options: Args.OBJECT | Args.Optional, _default: {} }
     { handler: Args.FUNCTION | Args.Required }
-    { callback: Args.FUNCTION | Args.Optional, _default: (->) }
-    { updateCallback: Args.FUNCTION | Args.Optional, _default: (->) }
-    { removeCallback: Args.FUNCTION | Args.Optional, _default: (->) }
+    { callbacksArg: Args.ANY | Args.Optional }
   ], arguments)
 
-  { patterns, globOptions, outputDir, handler, options, callback, updateCallback, removeCallback } = args      
+  { patterns, globOptions, outputDir, handler, options, callbacksArg } = args      
+
+  callbacks = {}
+  callbacks.initial = 
+    if _.isFunction(callbacksArg) then callbacksArg else callbacksArg?.initial || (->)
+  callbacks.update = callbacksArg?.update || defaultUpdateCallback(callbacks.initial)
+  callbacks.remove = callbacksArg?.remove || (->)
 
   if !_.isArray(patterns) then patterns = [ patterns ]
   if _.isString(globOptions) then globOptions = { cwd: globOptions }
@@ -42,31 +52,45 @@ module.exports = () ->
     if extension?.length > 0 then "#{outPath}.#{extension}"
     else outPath
 
+  inputFilePath = (p) -> path.resolve(globOptions?.cwd || '', p)
   outputFilePath = (p) -> generateFilePath(p, outputDir, options.extension)
 
   extraFilePaths = (p) -> _.mapValues options.extraFiles, (extraFileOptions) ->
         generateFilePath(p, extraFileOptions.dir, extraFileOptions.extension)
 
-  async.map patterns, ((pattern, cb) -> glob(pattern, globOptions, cb)), (err, matches) ->
-    allMatches = _(matches).flatten().uniq().value()
-    inFilesAbsolute = _.map(allMatches, (p) -> path.resolve(globOptions?.cwd || '', p))
+  processFilePair = ([ inputPath, outputPath, extraPaths ], cb) ->
+    handler inputFilePath(inputPath), outputPath, extraPaths, (err, result) ->
+      if err then cb(err)
+      else cb(null, { inputPath: path.normalize(inputPath), outputPath, extraPaths, result })
 
+  async.map patterns, ((pattern, cb) -> glob(pattern, globOptions, cb)), (err, matches) ->
+    if err
+      watchGlobInstance?.destroy()
+      callbacks.initial(err)
+      return
+
+    allMatches = _(matches).flatten().uniq().value()
     outFiles = _.map(allMatches, outputFilePath)
     extraFiles = _.map(allMatches, extraFilePaths)
 
+    async.map _.zip(allMatches, outFiles, extraFiles), processFilePair, (err, success) ->
+      if err
+        watchGlobInstance.destroy()
+        callbacks.initial(err)
+      else callbacks.initial(null, success)
 
-    processFilePair = (processArgs, cb) -> handler(processArgs[0], processArgs[1], processArgs[2], cb)
-
-    async.map _.zip(inFilesAbsolute, outFiles, extraFiles), processFilePair, (err, success) ->
       
-      if !options?.watch then callback(err, success)
-      else
-        buildFile = (file) -> processFilePair([ file.path, outputFilePath(file.relative), extraFilePaths(file.relative)], updateCallback)
+  if options?.watch
+    buildFile = (filePathObj) ->
+      processFilePair([ filePathObj.relative, outputFilePath(filePathObj.relative), extraFilePaths(filePathObj.relative)], callbacks.update)
 
-        deleteFile = (file) ->
-          builtPath = outputFilePath(file.relative)
-          fs.unlink(builtPath , (err, success) -> removeCallback(err,builtPath))
+    deleteFile = (file) ->
+      outputPath = outputFilePath(file.relative)
+      extraPaths = extraFilePaths(file.relative)
 
-        watchGlob(patterns, globOptions, buildFile, deleteFile)
+      allPaths = _.values(extraPaths).concat([outputPath])
+      async.map allPaths, fs.unlink, (err, success) ->
+        if err then callbacks.remove(err)
+        else callbacks.remove(null, { inputPath: path.normalize(file.relative), outputPath, extraPaths })
 
-        callback(err, success)
+    watchGlobInstance = watchGlob(patterns, globOptions, buildFile, deleteFile)
