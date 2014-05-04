@@ -1,6 +1,6 @@
 {
   "name": "mirror-glob",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Process a group of files into another folder and watch them for changes",
   "main": "index.js",
   "scripts": {
